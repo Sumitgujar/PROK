@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: prok_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - prok_mongo_data:/data/db
+      - ./database/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    environment:
+      MONGO_INITDB_DATABASE: prok_db
+    networks:
+      - prok_network
+
+volumes:
+  prok_mongo_data:
+
+networks:
+  prok_network:
+    driver: bridge
