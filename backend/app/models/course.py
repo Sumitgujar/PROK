@@ -1,23 +1,16 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+from pydantic import BaseModel
+from typing import List, Optional
 
-
-class Course(BaseModel):
-    """Course catalog entry stored in the `courses` collection."""
-    id: Optional[str] = Field(default=None, alias="_id")
-    course_code: str                 # e.g. CS301
+class CourseCreate(BaseModel):
     title: str
-    description: Optional[str] = None
+    course_code: str
     department: str
     credits: int = 3
-    teacher_id: Optional[str] = None  # ref → users._id
-    semester: int
-    year: int
-    max_students: int = 60
-    is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    description: str = ""
+    teacher_id: Optional[str] = None
+    tags: List[str] = []
 
-    class Config:
-        populate_by_name = True
+class ProfileUpdate(BaseModel):
+    skills: List[str] = []
+    interests: List[str] = []
+    career_goals: List[str] = []

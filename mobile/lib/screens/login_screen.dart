@@ -1,127 +1,76 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../core/constants.dart';
+
+import "package:flutter/material.dart";
+import "package:provider/provider.dart";
+import "package:prok_mobile/core/constants.dart";
+import "package:prok_mobile/providers/auth_provider.dart";
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  @override State<LoginScreen> createState() => _State();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _State extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
+  final _pwdCtrl = TextEditingController();
   bool _obscure = true;
-
-  @override
-  void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    super.dispose();
-  }
+  bool _loading = false;
+  String? _error;
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final auth = context.read<AuthProvider>();
-    final ok = await auth.login(_emailCtrl.text.trim(), _passCtrl.text);
-    if (!mounted) return;
-    if (ok) {
-      context.go(AppRoutes.dashboard);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.error ?? 'Login failed'),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
+    setState(() { _loading = true; _error = null; });
+    try {
+      await context.read<AuthProvider>().login(
+          _emailCtrl.text.trim(), _pwdCtrl.text);
+      if (!mounted) return;
+      final user = context.read<AuthProvider>().user!;
+      Navigator.pushReplacementNamed(context,
+          user.role == "teacher" ? AppRoutes.teacherHome : AppRoutes.studentHome);
+    } catch (e) {
+      setState(() { _error = e.toString().replaceAll("Exception: ", ""); });
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    return Scaffold(
-      backgroundColor: const Color(0xFF1a1a2e),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 8,
-              child: Padding(
-                padding: const EdgeInsets.all(28),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text('PROK',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text('Sign in to your account',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                      const SizedBox(height: 24),
-                      TextFormField(
-                        controller: _emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
-                        validator: (v) =>
-                            v == null || !v.contains('@') ? 'Enter a valid email' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _passCtrl,
-                        obscureText: _obscure,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-                            onPressed: () => setState(() => _obscure = !_obscure),
-                          ),
-                        ),
-                        validator: (v) =>
-                            v == null || v.length < 6 ? 'Min 6 characters' : null,
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: auth.loading ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF6c63ff),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: auth.loading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2))
-                              : const Text('Sign In', style: TextStyle(fontSize: 16)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  @override Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(child: Center(child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Form(key: _formKey, child: Column(
+        mainAxisSize: MainAxisSize.min, children: [
+          const Text("PROK", style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+          const SizedBox(height: 8),
+          const Text("College Ecosystem", style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 32),
+          if (_error != null) Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)),
+            child: Text(_error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center)),
+          if (_error != null) const SizedBox(height: 12),
+          TextFormField(
+            controller: _emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder(), prefixIcon: Icon(Icons.email_outlined)),
+            validator: (v) => (v?.contains("@") ?? false) ? null : "Enter a valid email"),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _pwdCtrl,
+            obscureText: _obscure,
+            decoration: InputDecoration(
+              labelText: "Password", border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                  icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscure = !_obscure))),
+            validator: (v) => (v?.length ?? 0) >= 6 ? null : "Min 6 characters"),
+          const SizedBox(height: 24),
+          SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
+            onPressed: _loading ? null : _submit,
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E3A8A)),
+            child: _loading
+                ? const SizedBox(width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text("Sign In", style: TextStyle(color: Colors.white, fontSize: 16)))),
+        ]))));
 }

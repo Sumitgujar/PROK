@@ -1,32 +1,30 @@
-import { useState, useCallback } from 'react';
-import { authApi } from '../services/api';
-import type { User } from '../types';
+import { useState, useCallback } from "react"
+import { api } from "../services/api"
 
-function getStoredUser(): User | null {
-  try {
-    const raw = localStorage.getItem('prok_user');
-    return raw ? (JSON.parse(raw) as User) : null;
-  } catch {
-    return null;
-  }
-}
+const TOKEN_KEY = "prok_token"
+const USER_KEY = "prok_user"
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(getStoredUser);
+  const [isAuthenticated, setAuthenticated] = useState(() => !!localStorage.getItem(TOKEN_KEY))
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(USER_KEY) || "null") } catch { return null }
+  })
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await authApi.login(email, password);
-    localStorage.setItem('prok_token', res.access_token);
-    localStorage.setItem('prok_user', JSON.stringify(res.user));
-    setUser(res.user);
-    return res.user;
-  }, []);
+    const data = await api.post("/auth/login", { email, password }, false)
+    if (data.user?.role !== "admin") throw new Error("Admin access only")
+    localStorage.setItem(TOKEN_KEY, data.access_token)
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+    setAuthenticated(true)
+    setUser(data.user)
+  }, [])
 
   const logout = useCallback(() => {
-    localStorage.removeItem('prok_token');
-    localStorage.removeItem('prok_user');
-    setUser(null);
-  }, []);
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+    setAuthenticated(false)
+    setUser(null)
+  }, [])
 
-  return { user, login, logout, isAuthenticated: !!user };
+  return { isAuthenticated, user, login, logout }
 }

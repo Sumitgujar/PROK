@@ -1,93 +1,69 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import '../core/constants.dart';
-import '../models/user_model.dart';
 
-class ApiException implements Exception {
-  final String message;
-  final int? statusCode;
-  ApiException(this.message, {this.statusCode});
-  @override
-  String toString() => message;
-}
+import "dart:convert";
+import "dart:io";
+import "package:http/http.dart" as http;
+import "package:shared_preferences/shared_preferences.dart";
+import "package:prok_mobile/core/constants.dart";
 
 class ApiService {
-  static final ApiService _instance = ApiService._internal();
-  factory ApiService() => _instance;
-  ApiService._internal();
+  static const _tokenKey = "prok_token";
 
-  final String _base = kApiBaseUrl;
-
-  Future<String?> _getToken() async {
+  Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(kTokenKey);
+    return prefs.getString(_tokenKey);
   }
 
-  Map<String, String> _headers({String? token, bool form = false}) => {
-        'Content-Type': form
-            ? 'application/x-www-form-urlencoded'
-            : 'application/json',
-        if (token != null) 'Authorization': 'Bearer \$token',
-      };
-
-  void _check(http.Response res) {
-    if (res.statusCode >= 400) {
-      final body = json.decode(res.body) as Map<String, dynamic>?;
-      final msg = body?['detail']?.toString() ?? 'Request failed (\${res.statusCode})';
-      throw ApiException(msg, statusCode: res.statusCode);
+  Future<Map<String, String>> _headers({bool auth = true}) async {
+    final headers = <String, String>{"Content-Type": "application/json"};
+    if (auth) {
+      final token = await getToken();
+      if (token != null) headers["Authorization"] = "Bearer $token";
     }
+    return headers;
   }
 
-  // ---------- Health ----------
-  Future<Map<String, dynamic>> health() async {
-    final res = await http.get(Uri.parse('\$_base/health'));
-    _check(res);
-    return json.decode(res.body) as Map<String, dynamic>;
+  dynamic _parse(http.Response res) {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      if (res.body.isEmpty) return {};
+      return jsonDecode(res.body);
+    }
+    final body = res.body.isNotEmpty ? jsonDecode(res.body) : {};
+    final detail = body is Map ? (body["detail"] ?? res.reasonPhrase) : res.reasonPhrase;
+    throw Exception(detail.toString());
   }
 
-  // ---------- Auth ----------
-  Future<Map<String, dynamic>> login(String email, String password) async {
-    final body = 'username=\${Uri.encodeComponent(email)}&password=\${Uri.encodeComponent(password)}';
-    final res = await http.post(
-      Uri.parse('\$_base/auth/login'),
-      headers: _headers(form: true),
-      body: body,
-    );
-    _check(res);
-    return json.decode(res.body) as Map<String, dynamic>;
-  }
-
-  Future<Map<String, dynamic>> register({
-    required String name,
-    required String email,
-    required String password,
-    String role = 'student',
-    String? collegeId,
-  }) async {
-    final res = await http.post(
-      Uri.parse('\$_base/auth/register'),
-      headers: _headers(),
-      body: json.encode({
-        'name': name,
-        'email': email,
-        'password': password,
-        'role': role,
-        if (collegeId != null) 'college_id': collegeId,
-      }),
-    );
-    _check(res);
-    return json.decode(res.body) as Map<String, dynamic>;
-  }
-
-  Future<UserModel> me() async {
-    final token = await _getToken();
-    if (token == null) throw ApiException('Not authenticated');
+  Future<dynamic> get(String path) async {
     final res = await http.get(
-      Uri.parse('\$_base/auth/me'),
-      headers: _headers(token: token),
-    );
-    _check(res);
-    return UserModel.fromJson(json.decode(res.body) as Map<String, dynamic>);
+        Uri.parse("${ApiConfig.baseUrl}$path"), headers: await _headers());
+    return _parse(res);
+  }
+
+  Future<dynamic> post(String path, dynamic body, {bool auth = true}) async {
+    final res = await http.post(
+        Uri.parse("${ApiConfig.baseUrl}$path"),
+        headers: await _headers(auth: auth),
+        body: jsonEncode(body));
+    return _parse(res);
+  }
+
+  Future<dynamic> put(String path, dynamic body) async {
+    final res = await http.put(
+        Uri.parse("${ApiConfig.baseUrl}$path"),
+        headers: await _headers(),
+        body: jsonEncode(body));
+    return _parse(res);
+  }
+
+  Future<dynamic> uploadFile(String path, String filePath,
+      Map<String, String> fields) async {
+    final token = await getToken();
+    final request = http.MultipartRequest(
+        "POST", Uri.parse("${ApiConfig.baseUrl}$path"));
+    if (token != null) request.headers["Authorization"] = "Bearer $token";
+    request.files.add(await http.MultipartFile.fromPath("file", filePath));
+    request.fields.addAll(fields);
+    final streamed = await request.send();
+    final res = await http.Response.fromStream(streamed);
+    return _parse(res);
   }
 }

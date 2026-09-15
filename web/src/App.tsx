@@ -1,16 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import MainLayout from './layouts/MainLayout';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { useAuth } from "./hooks/useAuth"
+import LoginPage from "./pages/LoginPage"
+import DashboardPage from "./pages/DashboardPage"
+import StudentsPage from "./pages/StudentsPage"
+import AttendancePage from "./pages/AttendancePage"
+import DocumentsPage from "./pages/DocumentsPage"
+import ScholarshipsPage from "./pages/ScholarshipsPage"
+import CoursesPage from "./pages/CoursesPage"
+import MainLayout from "./layouts/MainLayout"
 
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div style={{ padding: 32 }}>
-      <h2>{title}</h2>
-      <p style={{ color: '#888' }}>This module will be implemented in Stage 2.</p>
-    </div>
-  );
+function Protected({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 export default function App() {
@@ -18,24 +19,17 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
+        <Route path="/" element={<Protected><MainLayout /></Protected>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="attendance" element={<Placeholder title="📋 Attendance" />} />
-          <Route path="documents" element={<Placeholder title="📂 Documents" />} />
-          <Route path="scholarships" element={<Placeholder title="🎓 Scholarships" />} />
-          <Route path="courses" element={<Placeholder title="📚 Courses" />} />
-          <Route path="analytics" element={<Placeholder title="📊 Analytics" />} />
+          <Route path="students" element={<StudentsPage />} />
+          <Route path="attendance" element={<AttendancePage />} />
+          <Route path="documents" element={<DocumentsPage />} />
+          <Route path="scholarships" element={<ScholarshipsPage />} />
+          <Route path="courses" element={<CoursesPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
-  );
+  )
 }

@@ -1,62 +1,39 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../screens/splash_screen.dart';
-import '../screens/login_screen.dart';
-import '../screens/dashboard_screen.dart';
-import 'constants.dart';
 
-GoRouter buildRouter() {
-  return GoRouter(
-    initialLocation: AppRoutes.splash,
-    redirect: (context, state) {
-      final auth = context.read<AuthProvider>();
-      final loc = state.matchedLocation;
-      final isLoggingIn = loc == AppRoutes.login;
-      final isSplash = loc == AppRoutes.splash;
+import "package:flutter/material.dart";
+import "package:prok_mobile/core/constants.dart";
+import "package:prok_mobile/screens/splash_screen.dart";
+import "package:prok_mobile/screens/login_screen.dart";
+import "package:prok_mobile/screens/student/home_screen.dart";
+import "package:prok_mobile/screens/student/attendance_screen.dart";
+import "package:prok_mobile/screens/student/documents_screen.dart";
+import "package:prok_mobile/screens/student/scholarships_screen.dart";
+import "package:prok_mobile/screens/student/courses_screen.dart";
+import "package:prok_mobile/screens/student/notifications_screen.dart";
+import "package:prok_mobile/screens/student/profile_screen.dart";
+import "package:prok_mobile/screens/teacher/todays_classes_screen.dart";
+import "package:prok_mobile/screens/teacher/class_details_screen.dart";
+import "package:prok_mobile/screens/teacher/mark_attendance_screen.dart";
+import "package:prok_mobile/screens/teacher/attendance_history_screen.dart";
 
-      if (isSplash) return null; // let splash decide
-      if (!auth.isAuthenticated && !isLoggingIn) return AppRoutes.login;
-      if (auth.isAuthenticated && isLoggingIn) return AppRoutes.dashboard;
-      return null;
-    },
-    routes: [
-      GoRoute(path: AppRoutes.splash, builder: (_, __) => const SplashScreen()),
-      GoRoute(path: AppRoutes.login, builder: (_, __) => const LoginScreen()),
-      GoRoute(path: AppRoutes.dashboard, builder: (_, __) => const DashboardScreen()),
-      GoRoute(
-        path: AppRoutes.attendance,
-        builder: (_, __) => const _PlaceholderScreen(title: 'Attendance'),
-      ),
-      GoRoute(
-        path: AppRoutes.documents,
-        builder: (_, __) => const _PlaceholderScreen(title: 'Documents'),
-      ),
-      GoRoute(
-        path: AppRoutes.scholarships,
-        builder: (_, __) => const _PlaceholderScreen(title: 'Scholarships'),
-      ),
-      GoRoute(
-        path: AppRoutes.courses,
-        builder: (_, __) => const _PlaceholderScreen(title: 'Courses'),
-      ),
-    ],
-  );
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const _PlaceholderScreen({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Text('$title — coming in Stage 2',
-            style: const TextStyle(fontSize: 18, color: Colors.grey)),
-      ),
-    );
+class AppRouter {
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    Widget page;
+    switch (settings.name) {
+      case AppRoutes.splash: page = const SplashScreen(); break;
+      case AppRoutes.login: page = const LoginScreen(); break;
+      case AppRoutes.studentHome: page = const StudentHomeScreen(); break;
+      case AppRoutes.studentAttendance: page = const StudentAttendanceScreen(); break;
+      case AppRoutes.studentDocuments: page = const StudentDocumentsScreen(); break;
+      case AppRoutes.studentScholarships: page = const StudentScholarshipsScreen(); break;
+      case AppRoutes.studentCourses: page = const StudentCoursesScreen(); break;
+      case AppRoutes.studentNotifications: page = const StudentNotificationsScreen(); break;
+      case AppRoutes.studentProfile: page = const StudentProfileScreen(); break;
+      case AppRoutes.teacherHome: page = const TeacherTodaysClassesScreen(); break;
+      case "/teacher/class-details": page = const ClassDetailsScreen(); break;
+      case "/teacher/mark-attendance": page = const MarkAttendanceScreen(); break;
+      case "/teacher/attendance-history": page = const AttendanceHistoryScreen(); break;
+      default: page = const SplashScreen();
+    }
+    return MaterialPageRoute(builder: (_) => page, settings: settings);
   }
 }

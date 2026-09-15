@@ -1,96 +1,67 @@
-import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authApi } from '../services/api';
+import { useState, FormEvent } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { login } = useAuth()
+  const nav = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+    if (!email.trim()) { setError('Email is required'); return }
+    if (!password) { setError('Password is required'); return }
+    setLoading(true)
     try {
-      const res = await authApi.login(email, password);
-      localStorage.setItem('prok_token', res.access_token);
-      localStorage.setItem('prok_user', JSON.stringify(res.user));
-      navigate('/dashboard');
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        'Login failed. Check your credentials.';
-      setError(msg);
+      await login(email.trim(), password)
+      nav('/dashboard')
+    } catch (err: any) {
+      setError(err.message || 'Login failed')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#1a1a2e',
-    }}>
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          background: '#fff',
-          padding: 40,
-          borderRadius: 12,
-          width: 360,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-        }}
-      >
-        <h2 style={{ margin: '0 0 8px', color: '#1a1a2e' }}>PROK</h2>
-        <p style={{ margin: '0 0 24px', color: '#666', fontSize: 14 }}>Sign in to your account</p>
-
-        {error && (
-          <div style={{
-            background: '#fdecea', color: '#c0392b', padding: '10px 14px',
-            borderRadius: 6, marginBottom: 16, fontSize: 14,
-          }}>
-            {error}
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-600 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-2">🎓</div>
+          <h1 className="text-3xl font-bold text-blue-900">PROK Admin</h1>
+          <p className="text-gray-500 mt-1">College Ecosystem Management</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="admin@prok.edu" autoFocus />
           </div>
-        )}
-
-        <label style={{ display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 600 }}>Email</label>
-        <input
-          type="email" value={email} required
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@college.edu"
-          style={inputStyle}
-        />
-
-        <label style={{ display: 'block', margin: '16px 0 4px', fontSize: 13, fontWeight: 600 }}>Password</label>
-        <input
-          type="password" value={password} required
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          style={inputStyle}
-        />
-
-        <button
-          type="submit" disabled={loading}
-          style={{
-            marginTop: 24, width: '100%', padding: '12px',
-            background: loading ? '#999' : '#6c63ff',
-            color: '#fff', border: 'none', borderRadius: 8,
-            fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 600,
-          }}
-        >
-          {loading ? 'Signing in…' : 'Sign In'}
-        </button>
-      </form>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="••••••••" />
+          </div>
+          <button
+            type="submit" disabled={loading}
+            className="w-full bg-blue-900 text-white py-3 rounded-lg font-semibold hover:bg-blue-800 disabled:opacity-60 transition">
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+        <p className="text-center text-xs text-gray-400 mt-6">Admin access only</p>
+      </div>
     </div>
-  );
+  )
 }
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', border: '1px solid #ddd',
-  borderRadius: 6, fontSize: 14, boxSizing: 'border-box',
-};

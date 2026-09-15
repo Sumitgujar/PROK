@@ -1,87 +1,44 @@
-import { useCallback } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from "react-router-dom"
+import { useAuth } from "../hooks/useAuth"
 
-const navItems = [
-  { to: '/dashboard', label: '🏠 Dashboard' },
-  { to: '/attendance', label: '📋 Attendance' },
-  { to: '/documents', label: '📂 Documents' },
-  { to: '/scholarships', label: '🎓 Scholarships' },
-  { to: '/courses', label: '📚 Courses' },
-  { to: '/analytics', label: '📊 Analytics' },
-];
+const NAV = [
+  { to: "/dashboard", label: "Dashboard", emoji: "📊" },
+  { to: "/students", label: "Students", emoji: "🎓" },
+  { to: "/attendance", label: "Attendance", emoji: "📋" },
+  { to: "/documents", label: "Documents", emoji: "📄" },
+  { to: "/scholarships", label: "Scholarships", emoji: "🏆" },
+  { to: "/courses", label: "Courses", emoji: "📚" },
+]
 
 export default function MainLayout() {
-  const navigate = useNavigate();
-
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('prok_token');
-    localStorage.removeItem('prok_user');
-    navigate('/login');
-  }, [navigate]);
-
-  const rawUser = localStorage.getItem('prok_user');
-  const user = rawUser ? JSON.parse(rawUser) : null;
-
+  const { logout, user } = useAuth()
+  const nav = useNavigate()
+  const handleLogout = () => { logout(); nav("/login") }
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Sidebar */}
-      <aside style={{
-        width: 240,
-        background: '#1a1a2e',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '24px 0',
-      }}>
-        <div style={{ padding: '0 24px 24px', borderBottom: '1px solid #2a2a4e' }}>
-          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 2 }}>PROK</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: '#8888bb' }}>Admin Dashboard</p>
+    <div className="flex h-screen bg-gray-50">
+      <aside className="w-64 bg-blue-900 text-white flex flex-col">
+        <div className="p-6 border-b border-blue-800">
+          <div className="text-2xl font-bold">PROK Admin</div>
+          <div className="text-blue-300 text-sm mt-1">{user?.full_name || "Admin"}</div>
         </div>
-
-        <nav style={{ flex: 1, padding: '16px 0' }}>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              style={({ isActive }) => ({
-                display: 'block',
-                padding: '10px 24px',
-                color: isActive ? '#fff' : '#8888bb',
-                background: isActive ? '#2a2a4e' : 'transparent',
-                textDecoration: 'none',
-                fontSize: 14,
-                borderLeft: isActive ? '3px solid #6c63ff' : '3px solid transparent',
-              })}
-            >
-              {item.label}
+        <nav className="flex-1 p-4 space-y-1">
+          {NAV.map(n => (
+            <NavLink key={n.to} to={n.to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                  isActive ? "bg-blue-700 text-white" : "text-blue-200 hover:bg-blue-800 hover:text-white"}`}>
+              <span>{n.emoji}</span><span>{n.label}</span>
             </NavLink>
           ))}
         </nav>
-
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #2a2a4e' }}>
-          {user && <p style={{ margin: '0 0 8px', fontSize: 12, color: '#8888bb' }}>{user.email}</p>}
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: '8px',
-              background: '#c0392b',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-              fontSize: 13,
-            }}
-          >
-            Logout
-          </button>
-        </div>
+        <button onClick={handleLogout}
+          className="m-4 p-3 text-blue-300 hover:text-white hover:bg-blue-800 rounded-lg text-left transition">
+          Sign Out
+        </button>
       </aside>
-
-      {/* Main content */}
-      <main style={{ flex: 1, overflow: 'auto', background: '#f4f6fa', padding: 32 }}>
+      <main className="flex-1 overflow-auto p-8">
         <Outlet />
       </main>
     </div>
-  );
+  )
 }
