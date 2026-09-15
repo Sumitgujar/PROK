@@ -6,16 +6,15 @@ from app.models.user import UserRole
 # ---------- Request schemas ----------
 
 class UserRegister(BaseModel):
+    """
+    Public registration schema.
+    `role` is intentionally absent — the backend always assigns 'student'.
+    Never trust the client to declare its own role.
+    """
     name: str
     email: EmailStr
     password: str
-    role: UserRole = UserRole.student
     college_id: Optional[str] = None
-
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
 
 
 # ---------- Response schemas ----------

@@ -18,6 +18,10 @@ def _doc_to_user_out(doc: dict) -> UserOut:
 
 
 async def register_user(db: AsyncIOMotorDatabase, data: UserRegister) -> dict:
+    """
+    Self-registration always assigns the 'student' role.
+    Role is never read from the incoming request.
+    """
     existing = await db.users.find_one({"email": data.email})
     if existing:
         raise ValueError("Email already registered")
@@ -26,14 +30,14 @@ async def register_user(db: AsyncIOMotorDatabase, data: UserRegister) -> dict:
         "name": data.name,
         "email": data.email,
         "hashed_password": hash_password(data.password),
-        "role": data.role.value,
+        "role": UserRole.student.value,   # <-- always student, never from request
         "is_active": True,
         "college_id": data.college_id,
     }
     result = await db.users.insert_one(doc)
     doc["_id"] = result.inserted_id
     user_out = _doc_to_user_out(doc)
-    token = create_access_token({"sub": str(result.inserted_id), "role": data.role.value})
+    token = create_access_token({"sub": str(result.inserted_id), "role": UserRole.student.value})
     return {"access_token": token, "token_type": "bearer", "user": user_out}
 
 
@@ -45,6 +49,7 @@ async def login_user(db: AsyncIOMotorDatabase, email: str, password: str) -> dic
         raise ValueError("Account is deactivated")
 
     user_out = _doc_to_user_out(doc)
+    # Role is read from DB document — never from client input
     token = create_access_token({"sub": str(doc["_id"]), "role": doc["role"]})
     return {"access_token": token, "token_type": "bearer", "user": user_out}
 
@@ -56,4 +61,33 @@ async def get_user_by_id(db: AsyncIOMotorDatabase, user_id: str) -> Optional[Use
         return None
     if not doc:
         return None
+    return _doc_to_user_out(doc)
+
+
+async def create_user_with_role(
+    db: AsyncIOMotorDatabase,
+    name: str,
+    email: str,
+    password: str,
+    role: UserRole,
+    college_id: Optional[str] = None,
+) -> UserOut:
+    """
+    Internal-only helper for seeding and admin operations.
+    Not exposed via any API endpoint.
+    """
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        return _doc_to_user_out(existing)
+
+    doc = {
+        "name": name,
+        "email": email,
+        "hashed_password": hash_password(password),
+        "role": role.value,
+        "is_active": True,
+        "college_id": college_id,
+    }
+    result = await db.users.insert_one(doc)
+    doc["_id"] = result.inserted_id
     return _doc_to_user_out(doc)
