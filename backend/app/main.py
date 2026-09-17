@@ -4,8 +4,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.db.connection import connect_db, close_db
 from app.db.init_db import init_db
-from app.routers import health, auth, attendance, documents, scholarships, courses, notifications, dashboard, admin
+from app.routers import (
+    health,
+    auth,
+    attendance,
+    documents,
+    scholarships,
+    courses,
+    notifications,
+    dashboard,
+    admin,
+    intelligence,
+    interventions,
+)
 import os
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,16 +27,31 @@ async def lifespan(app: FastAPI):
     yield
     await close_db()
 
-app = FastAPI(title="PROK API", version="3.0.0", lifespan=lifespan)
 
-app.add_middleware(CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"])
+app = FastAPI(title="PROK API", version="4.0.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 os.makedirs("uploads", exist_ok=True)
 app.mount("/files", StaticFiles(directory="uploads"), name="files")
 
-for router in [health.router, auth.router, attendance.router, documents.router,
-               scholarships.router, courses.router, notifications.router,
-               dashboard.router, admin.router]:
+for router in [
+    health.router,
+    auth.router,
+    attendance.router,
+    documents.router,
+    scholarships.router,
+    courses.router,
+    notifications.router,
+    dashboard.router,
+    admin.router,
+    intelligence.router,
+    interventions.router,
+]:
     app.include_router(router)
