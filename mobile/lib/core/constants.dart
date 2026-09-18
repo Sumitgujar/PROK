@@ -8,6 +8,7 @@ class AppRoutes {
   static const String splash = "/";
   static const String login = "/login";
   static const String studentHome = "/student/home";
+  static const String studentAskProk = "/student/ask-prok";
   static const String studentAttendance = "/student/attendance";
   static const String studentDocuments = "/student/documents";
   static const String studentScholarships = "/student/scholarships";

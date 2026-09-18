@@ -16,6 +16,7 @@ from app.routers import (
     admin,
     intelligence,
     interventions,
+    ai,
 )
 import os
 
@@ -28,7 +29,7 @@ async def lifespan(app: FastAPI):
     await close_db()
 
 
-app = FastAPI(title="PROK API", version="4.0.0", lifespan=lifespan)
+app = FastAPI(title="PROK API", version="5.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,5 +54,6 @@ for router in [
     admin.router,
     intelligence.router,
     interventions.router,
+    ai.router,
 ]:
     app.include_router(router)

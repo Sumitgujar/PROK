@@ -9,6 +9,7 @@ import "package:prok_mobile/providers/document_provider.dart";
 import "package:prok_mobile/providers/scholarship_provider.dart";
 import "package:prok_mobile/providers/course_provider.dart";
 import "package:prok_mobile/providers/notification_provider.dart";
+import "package:prok_mobile/providers/ai_chat_provider.dart";
 
 void main() => runApp(const ProkApp());
 
@@ -22,6 +23,7 @@ class ProkApp extends StatelessWidget {
       ChangeNotifierProvider(create: (_) => ScholarshipProvider()),
       ChangeNotifierProvider(create: (_) => CourseProvider()),
       ChangeNotifierProvider(create: (_) => NotificationProvider()),
+      ChangeNotifierProvider(create: (_) => AiChatProvider()),
     ],
     child: MaterialApp(
       title: "PROK",

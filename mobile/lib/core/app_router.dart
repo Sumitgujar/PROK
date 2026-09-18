@@ -4,6 +4,7 @@ import "package:prok_mobile/core/constants.dart";
 import "package:prok_mobile/screens/splash_screen.dart";
 import "package:prok_mobile/screens/login_screen.dart";
 import "package:prok_mobile/screens/student/home_screen.dart";
+import "package:prok_mobile/screens/student/ask_prok_screen.dart";
 import "package:prok_mobile/screens/student/attendance_screen.dart";
 import "package:prok_mobile/screens/student/documents_screen.dart";
 import "package:prok_mobile/screens/student/scholarships_screen.dart";
@@ -22,6 +23,7 @@ class AppRouter {
       case AppRoutes.splash: page = const SplashScreen(); break;
       case AppRoutes.login: page = const LoginScreen(); break;
       case AppRoutes.studentHome: page = const StudentHomeScreen(); break;
+      case AppRoutes.studentAskProk: page = const AskProkScreen(); break;
       case AppRoutes.studentAttendance: page = const StudentAttendanceScreen(); break;
       case AppRoutes.studentDocuments: page = const StudentDocumentsScreen(); break;
       case AppRoutes.studentScholarships: page = const StudentScholarshipsScreen(); break;
