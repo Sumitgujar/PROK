@@ -1,15 +1,19 @@
 
-import "package:flutter/material.dart";
+import 'package:flutter/material.dart';
+import 'package:prok_mobile/theme/app_theme.dart';
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
   const LoadingWidget({super.key, this.message});
-  @override Widget build(BuildContext context) => Center(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const CircularProgressIndicator(color: Color(0xFF1E3A8A)),
+  @override
+  Widget build(BuildContext context) => Center(child: Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const CircularProgressIndicator(strokeWidth: 2, color: ProkColors.primary),
       if (message != null) ...[
-        const SizedBox(height: 12),
-        Text(message!, style: const TextStyle(color: Colors.grey)),
+        const SizedBox(height: 14),
+        Text(message!, style: const TextStyle(fontSize: 13, color: ProkColors.neutral400)),
       ],
-    ]));
+    ],
+  ));
 }
