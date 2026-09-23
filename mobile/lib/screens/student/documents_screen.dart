@@ -1,132 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:prok_mobile/theme/app_theme.dart';
 import 'package:prok_mobile/providers/document_provider.dart';
-import 'package:prok_mobile/providers/attendance_provider.dart';
 import 'package:prok_mobile/widgets/loading_widget.dart';
-import 'package:prok_mobile/widgets/empty_state_widget.dart';
 import 'package:prok_mobile/widgets/error_state_widget.dart';
-
+import 'package:prok_mobile/widgets/empty_state_widget.dart';
+import 'package:prok_mobile/widgets/stat_card.dart';
 class StudentDocumentsScreen extends StatefulWidget {
   const StudentDocumentsScreen({super.key});
-  @override State<StudentDocumentsScreen> createState() => _State();
+  @override State<StudentDocumentsScreen> createState() => _D();
 }
-
-class _State extends State<StudentDocumentsScreen> {
-  @override void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-        (_) => context.read<DocumentProvider>().loadDocuments());
-  }
-
-  Color _scol(String s) =>
-      s == 'VERIFIED' ? Colors.green : s == 'REJECTED' ? Colors.red : Colors.orange;
-  String _slabel(String s) =>
-      s == 'VERIFIED' ? 'Verified' : s == 'REJECTED' ? 'Rejected' : 'Under Review';
-
-  Future<void> _upload() async {
-    final docTypes = ['identity', 'academic', 'income', 'address', 'certificate', 'other'];
-    String selType = docTypes[0];
-    final titleCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final result = await showModalBottomSheet<Map<String, String>>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20, left: 20, right: 20, top: 20),
-        child: StatefulBuilder(builder: (_, setS) => Column(
-          mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Upload Document', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            TextField(controller: titleCtrl,
-                decoration: const InputDecoration(labelText: 'Title *', border: OutlineInputBorder())),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: selType,
-              decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
-              items: docTypes.map((t) => DropdownMenuItem(value: t, child: Text(t.toUpperCase()))).toList(),
-              onChanged: (v) => setS(() => selType = v!)),
-            const SizedBox(height: 10),
-            TextField(controller: descCtrl,
-                decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder())),
-            const SizedBox(height: 16),
-            SizedBox(width: double.infinity, child: ElevatedButton(
-              onPressed: () =>
-                  Navigator.pop(ctx, {'type': selType, 'title': titleCtrl.text, 'desc': descCtrl.text}),
-              child: const Text('Pick File and Upload'))),
-          ])),
-      ),
-    );
-    if (result == null || result['title']!.trim().isEmpty) return;
-    final picked = await FilePicker.platform.pickFiles(type: FileType.any);
-    if (picked == null || picked.files.single.path == null) return;
-    try {
-      await context.read<DocumentProvider>().uploadDocument(
-          filePath: picked.files.single.path!,
-          docType: result['type']!,
-          title: result['title']!,
-          description: result['desc'] ?? '');
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Uploaded successfully!'), backgroundColor: Colors.green));
-    } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red));
-    }
-  }
-
+class _D extends State<StudentDocumentsScreen> with SingleTickerProviderStateMixin {
+  late TabController _t;
+  @override void initState() { super.initState(); _t = TabController(length: 3, vsync: this); Future.microtask(() => context.read<DocumentProvider>().fetchDocuments()); }
+  @override void dispose() { _t.dispose(); super.dispose(); }
   @override Widget build(BuildContext context) {
-    final prov = context.watch<DocumentProvider>();
+    final p = context.watch<DocumentProvider>();
+    final all = p.documents;
     return Scaffold(
-      appBar: AppBar(title: const Text('My Documents')),
-      floatingActionButton: FloatingActionButton.extended(
-          onPressed: _upload, icon: const Icon(Icons.upload_file), label: const Text('Upload')),
-      body: RefreshIndicator(
-        onRefresh: () => context.read<DocumentProvider>().loadDocuments(),
-        child: Builder(builder: (_) {
-          if (prov.isLoading) return const LoadingWidget();
-          if (prov.state == ProviderState.error)
-            return ErrorStateWidget(
-                error: prov.error!,
-                onRetry: () => context.read<DocumentProvider>().loadDocuments());
-          if (prov.docs.isEmpty)
-            return const EmptyStateWidget(
-                title: 'No documents uploaded',
-                subtitle: 'Tap Upload to add your first document.',
-                icon: Icons.folder_open);
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: prov.docs.length,
-            itemBuilder: (_, i) {
-              final doc = prov.docs[i];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 10),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Expanded(child: Text(doc.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                            color: _scol(doc.status).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8)),
-                        child: Text(_slabel(doc.status),
-                            style: TextStyle(color: _scol(doc.status), fontSize: 11, fontWeight: FontWeight.bold))),
-                    ]),
-                    Text(doc.docType.toUpperCase(), style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                    if (doc.reviewNote != null && doc.reviewNote!.isNotEmpty)
-                      Text('Note: ${doc.reviewNote}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                    Text(doc.uploadedAt.length >= 10 ? doc.uploadedAt.substring(0, 10) : doc.uploadedAt,
-                        style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                  ])));
-            });
-        }),
-      ),
-    );
+      appBar: AppBar(title: const Text('Documents'), bottom: TabBar(controller: _t, labelColor: ProkColors.primary, unselectedLabelColor: ProkColors.neutral400, indicatorColor: ProkColors.primary,
+        tabs: [Tab(text: 'All (\${all.length})'), Tab(text: 'Verified (\${all.where((d) => d.status == "VERIFIED").length})'), const Tab(text: 'Pending')])),
+      floatingActionButton: FloatingActionButton.extended(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('File picker integration required'))),
+        backgroundColor: ProkColors.primary, icon: const Icon(Icons.upload_file_rounded, color: Colors.white), label: const Text('Upload', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+      body: p.state == ProviderState.loading ? const LoadingWidget()
+        : p.state == ProviderState.error ? ErrorStateWidget(error: p.error ?? 'Error', onRetry: () => context.read<DocumentProvider>().fetchDocuments())
+        : TabBarView(controller: _t, children: [
+            _DocList(docs: all),
+            _DocList(docs: all.where((d) => d.status == 'VERIFIED').toList()),
+            _DocList(docs: all.where((d) => d.status != 'VERIFIED' && d.status != 'REJECTED').toList()),
+          ]));
+  }
+}
+class _DocList extends StatelessWidget {
+  final List docs;
+  const _DocList({required this.docs});
+  @override Widget build(BuildContext context) {
+    if (docs.isEmpty) return const EmptyStateWidget(title: 'No documents here', icon: Icons.folder_outlined);
+    return ListView.separated(padding: const EdgeInsets.all(16), itemCount: docs.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (_, i) { final d = docs[i]; return ProkCard(child: Row(children: [
+        Container(width: 40, height: 40, decoration: const BoxDecoration(color: ProkColors.primarySurface, borderRadius: ProkRadius.sm),
+          child: const Icon(Icons.description_outlined, color: ProkColors.primaryLight, size: 20)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(d.docType ?? d.fileName ?? 'Document', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ProkColors.neutral900)),
+          Text((d.createdAt ?? '').toString().substring(0, 10), style: const TextStyle(fontSize: 12, color: ProkColors.neutral400)),
+        ])),
+        StatusBadge(status: d.status),
+      ])); });
   }
 }

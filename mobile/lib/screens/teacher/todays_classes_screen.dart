@@ -1,101 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:prok_mobile/theme/app_theme.dart';
 import 'package:prok_mobile/providers/attendance_provider.dart';
 import 'package:prok_mobile/widgets/loading_widget.dart';
-import 'package:prok_mobile/widgets/empty_state_widget.dart';
 import 'package:prok_mobile/widgets/error_state_widget.dart';
-
+import 'package:prok_mobile/widgets/empty_state_widget.dart';
+import 'package:prok_mobile/widgets/stat_card.dart';
+import 'package:prok_mobile/core/constants.dart';
 class TeacherTodaysClassesScreen extends StatefulWidget {
   const TeacherTodaysClassesScreen({super.key});
-  @override State<TeacherTodaysClassesScreen> createState() => _State();
+  @override State<TeacherTodaysClassesScreen> createState() => _TC();
 }
-
-class _State extends State<TeacherTodaysClassesScreen> {
-  @override void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-        (_) => context.read<AttendanceProvider>().loadTeacherCourses());
-  }
-
+class _TC extends State<TeacherTodaysClassesScreen> {
+  int _tab = 0;
+  @override void initState() { super.initState(); Future.microtask(() => context.read<AttendanceProvider>().fetchTeacherClasses()); }
+  void _nav(int i) { if (i == 0) return; Navigator.pushNamed(context, [AppRoutes.teacherHome, AppRoutes.teacherAttendanceInsights, AppRoutes.teacherProfile][i]); }
   @override Widget build(BuildContext context) {
-    final prov = context.watch<AttendanceProvider>();
+    final p = context.watch<AttendanceProvider>();
     return Scaffold(
-      appBar: AppBar(title: const Text("Today's Classes")),
-      body: RefreshIndicator(
-        onRefresh: () => context.read<AttendanceProvider>().loadTeacherCourses(),
-        child: Builder(builder: (_) {
-          if (prov.isLoading) return const LoadingWidget(message: 'Loading classes...');
-          if (prov.state == ProviderState.error)
-            return ErrorStateWidget(
-                error: prov.error!,
-                onRetry: () => context.read<AttendanceProvider>().loadTeacherCourses());
-          if (prov.teacherCourses.isEmpty)
-            return const EmptyStateWidget(
-                title: 'No classes today',
-                subtitle: 'Your scheduled classes appear here.',
-                icon: Icons.class_outlined);
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: prov.teacherCourses.length,
-            itemBuilder: (ctx, i) {
-              final c = prov.teacherCourses[i];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Expanded(child: Text(c['title'] ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                            color: const Color(0xFFEEF2FF),
-                            borderRadius: BorderRadius.circular(8)),
-                        child: Text(c['course_code'] ?? '',
-                            style: const TextStyle(
-                                color: Color(0xFF1E3A8A),
-                                fontWeight: FontWeight.bold, fontSize: 12))),
-                    ]),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      const Icon(Icons.people_outline, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text('${c["enrolled_count"] ?? 0} enrolled',
-                          style: const TextStyle(color: Colors.grey)),
-                      const SizedBox(width: 16),
-                      const Icon(Icons.credit_score_outlined, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text('${c["credits"] ?? 0} credits',
-                          style: const TextStyle(color: Colors.grey)),
-                    ]),
-                    const SizedBox(height: 12),
-                    Row(children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.history, size: 16),
-                          label: const Text('History'),
-                          onPressed: () => Navigator.pushNamed(
-                              context, '/teacher/attendance-history',
-                              arguments: c)),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.how_to_reg, size: 16),
-                          label: const Text('Mark'),
-                          onPressed: () => Navigator.pushNamed(
-                              context, '/teacher/mark-attendance',
-                              arguments: c)),
-                      ),
-                    ]),
-                  ]),
-                ),
-              );
-            },
-          );
-        }),
-      ),
+      appBar: AppBar(title: const Text("Today's Classes"),
+        actions: [IconButton(icon: const Icon(Icons.refresh_rounded, size: 20), onPressed: () => context.read<AttendanceProvider>().fetchTeacherClasses())]),
+      body: p.state == ProviderState.loading ? const LoadingWidget(message: 'Loading classes...')
+        : p.state == ProviderState.error ? ErrorStateWidget(error: p.error ?? 'Error', onRetry: () => context.read<AttendanceProvider>().fetchTeacherClasses())
+        : p.teacherClasses.isEmpty ? const EmptyStateWidget(title: 'No classes today', subtitle: 'Your scheduled sessions will appear here', icon: Icons.event_note_outlined)
+        : RefreshIndicator(color: ProkColors.primary, onRefresh: () => context.read<AttendanceProvider>().fetchTeacherClasses(),
+          child: ListView.separated(padding: const EdgeInsets.all(16), itemCount: p.teacherClasses.length, separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (_, i) { final c = p.teacherClasses[i]; return ProkCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(width: 40, height: 40, decoration: const BoxDecoration(color: ProkColors.primarySurface, borderRadius: ProkRadius.sm),
+                  child: const Icon(Icons.class_outlined, color: ProkColors.primary, size: 20)),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(c['course_title'] ?? c['course_code'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: ProkColors.neutral900)),
+                  Text(c['course_code'] ?? '', style: const TextStyle(fontSize: 12, color: ProkColors.neutral400)),
+                ])),
+              ]),
+              const SizedBox(height: 10), const Divider(height: 1), const SizedBox(height: 10),
+              Text('Students: \${c["enrolled_count"] ?? 0}', style: const TextStyle(fontSize: 12, color: ProkColors.neutral600)),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.teacherMarkAttendance, arguments: c),
+                  icon: const Icon(Icons.edit_rounded, size: 15), label: const Text('Mark'), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 38)))),
+                const SizedBox(width: 8),
+                Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.teacherAttendanceHistory, arguments: c),
+                  icon: const Icon(Icons.history_rounded, size: 15), label: const Text('History'), style: OutlinedButton.styleFrom(minimumSize: const Size(0, 38)))),
+              ]),
+            ])); })),
+      bottomNavigationBar: Container(decoration: const BoxDecoration(border: Border(top: BorderSide(color: ProkColors.neutral200))),
+        child: BottomNavigationBar(currentIndex: _tab, onTap: _nav, items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.today_rounded), label: 'Classes'),
+          BottomNavigationBarItem(icon: Icon(Icons.insights_rounded), label: 'Insights'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+        ])),
     );
   }
 }

@@ -1,168 +1,85 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:prok_mobile/providers/attendance_provider.dart';
+import 'package:prok_mobile/theme/app_theme.dart';
+import 'package:prok_mobile/services/api_service.dart';
 import 'package:prok_mobile/widgets/loading_widget.dart';
 import 'package:prok_mobile/widgets/error_state_widget.dart';
-
+import 'package:prok_mobile/widgets/empty_state_widget.dart';
+import 'package:prok_mobile/widgets/stat_card.dart';
 class MarkAttendanceScreen extends StatefulWidget {
   const MarkAttendanceScreen({super.key});
-  @override State<MarkAttendanceScreen> createState() => _State();
+  @override State<MarkAttendanceScreen> createState() => _MA();
 }
-
-class _State extends State<MarkAttendanceScreen> {
-  Map<String, dynamic>? _course;
-  Map<String, String> _marks = {}; // studentId -> 'present'|'absent'|'late'
-  bool _submitting = false;
-  bool _loaded = false;
-
-  @override void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _course = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      if (_course != null)
-        context.read<AttendanceProvider>().loadEnrolledStudents(_course!['_id']).then((_) {
-          setState(() => _loaded = true);
-        });
-    });
-  }
-
-  Future<void> _submit() async {
-    final students = context.read<AttendanceProvider>().enrolledStudents;
-    final unmarked = students.where((s) => !_marks.containsKey(s['student_id'])).toList();
-    if (unmarked.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please mark attendance for all students.'),
-          backgroundColor: Colors.orange));
-      return;
-    }
-    setState(() => _submitting = true);
+class _MA extends State<MarkAttendanceScreen> {
+  List _students = []; Map<String, String> _marks = {};
+  bool _loading = true, _saving = false; String? _error; Map? _course;
+  @override void didChangeDependencies() { super.didChangeDependencies(); _course = ModalRoute.of(context)?.settings.arguments as Map?; _load(); }
+  Future<void> _load() async {
+    final id = _course?['course_id'] ?? _course?['id'] ?? '';
+    setState(() { _loading = true; _error = null; });
     try {
-      final records = students
-          .map((s) => {'student_id': s['student_id'], 'status': _marks[s['student_id']]})
-          .toList();
-      await context.read<AttendanceProvider>().submitAttendance(
-          courseId: _course!['_id'], records: records);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Attendance saved!'), backgroundColor: Colors.green));
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      setState(() => _submitting = false);
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red));
-    }
+      final d = await ApiService().get('/attendance/course/\$id/students');
+      _students = (d['students'] ?? []) as List;
+      for (final s in _students) { _marks[s['student_id'] ?? s['college_id'] ?? ''] = 'PRESENT'; }
+      setState(() => _loading = false);
+    } catch (e) { setState(() { _loading = false; _error = e.toString().replaceAll('Exception: ', ''); }); }
   }
-
-  @override Widget build(BuildContext context) {
-    final prov = context.watch<AttendanceProvider>();
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_course?['title'] ?? 'Mark Attendance'),
-        subtitle: Text(_course?['course_code'] ?? ''),
-      ),
-      body: !_loaded
-          ? const LoadingWidget(message: 'Loading students...')
-          : prov.state == ProviderState.error
-              ? ErrorStateWidget(
-                  error: prov.error!,
-                  onRetry: () => context
-                      .read<AttendanceProvider>()
-                      .loadEnrolledStudents(_course!['_id']))
-              : Column(children: [
-                  // Quick all-mark actions
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(children: [
-                      Expanded(child: OutlinedButton(
-                          onPressed: () => setState(() {
-                                for (final s in prov.enrolledStudents)
-                                  _marks[s['student_id']] = 'present';
-                              }),
-                          child: const Text('All Present'))),
-                      const SizedBox(width: 8),
-                      Expanded(child: OutlinedButton(
-                          onPressed: () => setState(() {
-                                for (final s in prov.enrolledStudents)
-                                  _marks[s['student_id']] = 'absent';
-                              }),
-                          child: const Text('All Absent'))),
-                    ]),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: prov.enrolledStudents.isEmpty
-                        ? const Center(child: Text('No students enrolled'))
-                        : ListView.builder(
-                            itemCount: prov.enrolledStudents.length,
-                            itemBuilder: (ctx, i) {
-                              final s = prov.enrolledStudents[i];
-                              final sid = s['student_id'] as String;
-                              final mark = _marks[sid];
-                              return ListTile(
-                                leading: CircleAvatar(
-                                    backgroundColor: mark == 'present'
-                                        ? Colors.green
-                                        : mark == 'absent'
-                                            ? Colors.red
-                                            : mark == 'late'
-                                                ? Colors.orange
-                                                : Colors.grey[300],
-                                    child: Text(
-                                        (s['full_name'] as String? ?? 'S')
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                        style: const TextStyle(color: Colors.white))),
-                                title: Text(s['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: Text(s['college_id'] ?? ''),
-                                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                                  _MarkBtn('P', 'present', mark, Colors.green, () => setState(() => _marks[sid] = 'present')),
-                                  const SizedBox(width: 4),
-                                  _MarkBtn('L', 'late', mark, Colors.orange, () => setState(() => _marks[sid] = 'late')),
-                                  const SizedBox(width: 4),
-                                  _MarkBtn('A', 'absent', mark, Colors.red, () => setState(() => _marks[sid] = 'absent')),
-                                ]),
-                              );
-                            }),
-                  ),
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _submitting ? null : _submit,
-                          child: _submitting
-                              ? const SizedBox(width: 20, height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : Text('Save Attendance (${_marks.length}/${prov.enrolledStudents.length})'),
-                        ),
-                      ),
-                    ),
-                  ),
-                ]),
-    );
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final id = _course?['course_id'] ?? _course?['id'] ?? '';
+      await ApiService().post('/attendance/mark', {'course_id': id, 'records': _marks.entries.map((e) => {'student_id': e.key, 'status': e.value}).toList()});
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance saved'))); Navigator.pop(context); }
+    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')))); }
+    finally { if (mounted) setState(() => _saving = false); }
   }
+  @override Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Mark Attendance'),
+      actions: [
+        TextButton(onPressed: () { for (final s in _students) { _marks[s['student_id'] ?? s['college_id'] ?? ''] = 'PRESENT'; } setState(() {}); }, child: const Text('All P')),
+        TextButton(onPressed: () { for (final s in _students) { _marks[s['student_id'] ?? s['college_id'] ?? ''] = 'ABSENT'; } setState(() {}); }, child: const Text('All A')),
+      ]),
+    body: _loading ? const LoadingWidget() : _error != null ? ErrorStateWidget(error: _error!, onRetry: _load)
+      : _students.isEmpty ? const EmptyStateWidget(title: 'No students enrolled', icon: Icons.people_outline)
+      : Column(children: [
+          Container(color: ProkColors.primarySurface, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(children: [
+              const Expanded(child: Text('P = Present  A = Absent  L = Late', style: TextStyle(fontSize: 12, color: ProkColors.primary))),
+              Text('\${_marks.values.where((v) => v == "PRESENT").length}/\${_students.length}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ProkColors.primary)),
+            ])),
+          Expanded(child: ListView.separated(padding: const EdgeInsets.all(16), itemCount: _students.length, separatorBuilder: (_, __) => const SizedBox(height: 6),
+            itemBuilder: (_, i) {
+              final s = _students[i]; final sid = s['student_id'] ?? s['college_id'] ?? '';
+              return ProkCard(child: Row(children: [
+                CircleAvatar(radius: 16, backgroundColor: ProkColors.neutral100,
+                  child: Text((s['full_name'] ?? 'S')[0].toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ProkColors.neutral600))),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(s['full_name'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ProkColors.neutral900)),
+                  Text(s['college_id'] ?? '', style: const TextStyle(fontSize: 11, color: ProkColors.neutral400)),
+                ])),
+                _Toggle(value: _marks[sid] ?? 'PRESENT', onChanged: (v) => setState(() => _marks[sid] = v)),
+              ]));
+            })),
+          Padding(padding: const EdgeInsets.all(16), child: ElevatedButton(onPressed: _saving ? null : _save,
+            child: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Save Attendance'))),
+        ]),
+  );
 }
-
-class _MarkBtn extends StatelessWidget {
-  final String label, value;
-  final String? current;
-  final Color color;
-  final VoidCallback onTap;
-  const _MarkBtn(this.label, this.value, this.current, this.color, this.onTap);
-  @override Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 30, height: 30,
-      decoration: BoxDecoration(
-          color: current == value ? color : Colors.grey[200],
-          borderRadius: BorderRadius.circular(6)),
-      alignment: Alignment.center,
-      child: Text(label, style: TextStyle(
-          color: current == value ? Colors.white : Colors.grey[600],
-          fontWeight: FontWeight.bold, fontSize: 12))));
+class _Toggle extends StatelessWidget {
+  final String value; final ValueChanged<String> onChanged;
+  const _Toggle({required this.value, required this.onChanged});
+  @override Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+    _Btn(label: 'P', active: value == 'PRESENT', color: ProkColors.success, onTap: () => onChanged('PRESENT')),
+    const SizedBox(width: 4),
+    _Btn(label: 'L', active: value == 'LATE', color: ProkColors.warning, onTap: () => onChanged('LATE')),
+    const SizedBox(width: 4),
+    _Btn(label: 'A', active: value == 'ABSENT', color: ProkColors.error, onTap: () => onChanged('ABSENT')),
+  ]);
+}
+class _Btn extends StatelessWidget {
+  final String label; final bool active; final Color color; final VoidCallback onTap;
+  const _Btn({required this.label, required this.active, required this.color, required this.onTap});
+  @override Widget build(BuildContext context) => GestureDetector(onTap: onTap,
+    child: Container(width: 32, height: 32, decoration: BoxDecoration(color: active ? color : ProkColors.neutral100, borderRadius: ProkRadius.sm),
+      child: Center(child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: active ? Colors.white : ProkColors.neutral400)))));
 }
