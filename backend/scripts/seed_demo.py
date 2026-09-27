@@ -24,10 +24,10 @@ def dstr(d): return d.isoformat()
 def past(days): return (now() - timedelta(days=days))
 
 async def seed():
-    client = AsyncIOMotorClient(settings.MONGO_URI)
-    db = client[settings.MONGO_DB]
+    client = AsyncIOMotorClient(settings.mongodb_url)
+    db = client[settings.database_name]
     await client.admin.command("ping")
-    print(f"Connected to {settings.MONGO_URI}/{settings.MONGO_DB}")
+    print(f"Connected to {settings.mongodb_url}/{settings.database_name}")
 
     # ── 1. WIPE previous demo data ────────────────────────────────
     print("\nCleaning previous demo data...")

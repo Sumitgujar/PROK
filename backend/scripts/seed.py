@@ -71,11 +71,11 @@ SEED_USERS = [
 
 
 async def seed() -> None:
-    client = AsyncIOMotorClient(settings.MONGO_URI)
-    db = client[settings.MONGO_DB]
+    client = AsyncIOMotorClient(settings.mongodb_url)
+    db = client[settings.database_name]
     now = datetime.utcnow()
 
-    print(f"\nConnecting to {settings.MONGO_URI} / {settings.MONGO_DB}")
+    print(f"\nConnecting to {settings.mongodb_url} / {settings.database_name}")
     await client.admin.command("ping")
     print("Connected.\n")
 
