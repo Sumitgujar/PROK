@@ -1,7 +1,14 @@
+
 from app.db.connection import get_database
 from fastapi import HTTPException
 from bson import ObjectId
 from datetime import datetime, timezone, date
+
+
+def _norm(status: str) -> str:
+    """Normalize attendance status to lowercase."""
+    return status.lower().strip() if status else "absent"
+
 
 async def mark_attendance(course_id: str, records: list, teacher_id: str, date_str: str = None, notes: str = ""):
     db = get_database()
@@ -31,7 +38,7 @@ async def mark_attendance(course_id: str, records: list, teacher_id: str, date_s
     saved = 0
     for r in records:
         sid = r["student_id"]
-        status = r["status"]
+        status = _norm(r.get("status", "absent"))
         if status not in ("present", "absent", "late"):
             continue
         await db.attendance_records.update_one(
@@ -41,13 +48,26 @@ async def mark_attendance(course_id: str, records: list, teacher_id: str, date_s
             upsert=True
         )
         saved += 1
+        # Notify student on absence
+        if status == "absent":
+            user = await db.users.find_one({"college_id": sid})
+            if user:
+                await db.notifications.insert_one({
+                    "recipient_id": str(user["_id"]),
+                    "title": "Attendance marked: Absent",
+                    "message": f"You were marked absent for {course.get("title", course.get("course_code", ""))} on {today}. Contact your teacher if this is incorrect.",
+                    "ntype": "attendance",
+                    "is_read": False,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                })
+    present_count = sum(1 for r in records if _norm(r.get("status", "")) == "present")
+    absent_count = sum(1 for r in records if _norm(r.get("status", "")) == "absent")
     await db.attendance_sessions.update_one(
         {"_id": ObjectId(session_id)},
-        {"$set": {"present": sum(1 for r in records if r["status"]=="present"),
-                  "absent": sum(1 for r in records if r["status"]=="absent"),
-                  "total": len(records)}}
+        {"$set": {"present": present_count, "absent": absent_count, "total": len(records)}}
     )
     return {"session_id": session_id, "saved": saved, "date": today}
+
 
 async def get_student_summary(student_college_id: str):
     db = get_database()
@@ -55,39 +75,55 @@ async def get_student_summary(student_college_id: str):
     summary = []
     for enr in enrollments:
         course_id = enr["course_id"]
-        course = await db.courses.find_one({"_id": ObjectId(course_id)})
+        try:
+            course = await db.courses.find_one({"_id": ObjectId(course_id)})
+        except Exception:
+            course = await db.courses.find_one({"_id": course_id})
         if not course:
             continue
         sessions = await db.attendance_sessions.find({"course_id": course_id}).to_list(None)
         total = len(sessions)
         if total == 0:
-            summary.append({"course_id": course_id, "course_code": course.get("course_code",""),
-                "course_title": course.get("title",""), "total_sessions": 0,
-                "present": 0, "percentage": 0})
+            summary.append({"course_id": course_id, "course_code": course.get("course_code", ""),
+                "course_title": course.get("title", ""), "total_sessions": 0,
+                "present": 0, "absent": 0, "percentage": 0})
             continue
         present = 0
+        absent = 0
         for s in sessions:
-            rec = await db.attendance_records.find_one(
-                {"session_id": str(s["_id"]), "student_id": student_college_id,
-                 "status": "present"})
-            if rec:
+            rec = await db.attendance_records.find_one({"session_id": str(s["_id"]), "student_id": student_college_id})
+            status = (rec or {}).get("status", "absent")
+            if status in ("present", "late"):
                 present += 1
+            else:
+                absent += 1
         pct = round(present * 100 / total) if total > 0 else 0
-        summary.append({"course_id": course_id, "course_code": course.get("course_code",""),
-            "course_title": course.get("title",""), "total_sessions": total,
-            "present": present, "percentage": pct})
+        summary.append({"course_id": course_id, "course_code": course.get("course_code", ""),
+            "course_title": course.get("title", ""), "total_sessions": total,
+            "present": present, "absent": absent, "percentage": pct})
     return summary
+
 
 async def get_teacher_courses(teacher_id: str):
     db = get_database()
-    courses = await db.courses.find({"teacher_id": teacher_id, "is_active": True}).to_list(None)
+    # Match by teacher_id (ObjectId string) OR teacher_college_id
+    teacher = await db.users.find_one({"_id": ObjectId(teacher_id)})
+    teacher_cid = teacher.get("college_id") if teacher else None
+    query = {"is_active": True}
+    if teacher_cid:
+        query["$or"] = [{"teacher_id": teacher_id}, {"teacher_college_id": teacher_cid}]
+    else:
+        query["teacher_id"] = teacher_id
+    courses = await db.courses.find(query).to_list(None)
     result = []
     for c in courses:
         c["_id"] = str(c["_id"])
-        count = await db.enrollments.count_documents({"course_id": str(c["_id"])})
+        c["course_id"] = c["_id"]
+        count = await db.enrollments.count_documents({"course_id": c["_id"]})
         c["enrolled_count"] = count
         result.append(c)
     return result
+
 
 async def get_course_history(course_id: str):
     db = get_database()
@@ -104,6 +140,7 @@ async def get_course_history(course_id: str):
         result.append(s)
     return result
 
+
 async def get_enrolled_students(course_id: str):
     db = get_database()
     enrollments = await db.enrollments.find({"course_id": course_id}).to_list(None)
@@ -112,19 +149,20 @@ async def get_enrolled_students(course_id: str):
         user = await db.users.find_one({"college_id": enr["student_college_id"]})
         if user:
             students.append({"student_id": enr["student_college_id"],
-                "full_name": user.get("full_name",""),
-                "email": user.get("email",""),
-                "college_id": user.get("college_id","")})
+                "full_name": user.get("full_name", ""),
+                "email": user.get("email", ""),
+                "college_id": user.get("college_id", "")})
     return students
+
 
 async def get_today_sessions():
     db = get_database()
-    from datetime import date
     today = date.today().isoformat()
     sessions = await db.attendance_sessions.find({"date": today}).to_list(None)
     for s in sessions:
         s["_id"] = str(s["_id"])
     return sessions
+
 
 async def get_session_records(session_id: str):
     db = get_database()

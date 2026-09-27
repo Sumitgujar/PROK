@@ -52,3 +52,10 @@ async def init_db():
                     "department": "Computer Science",
                     "designation": "Associate Professor",
                 })
+    await db.courses.create_index("course_code")
+    await db.enrollments.create_index(["course_id", "student_college_id"], unique=True)
+    await db.documents.create_index(["student_id", "status"])
+    await db.scholarship_applications.create_index(["scholarship_id", "student_id"], unique=True)
+    await db.notifications.create_index(["recipient_id", "is_read"])
+    await db.ai_conversations.create_index("user_id")
+    await db.interventions.create_index(["student_id", "status"])

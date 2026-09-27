@@ -17,3 +17,7 @@ class InterventionUpdate(BaseModel):
     action: Optional[str] = None
     status: Optional[str] = None
     outcome: Optional[str] = None
+
+
+class InterventionStatus(BaseModel):
+    status: str

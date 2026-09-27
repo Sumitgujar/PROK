@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import require_role
-from app.models.intervention import InterventionCreate, InterventionUpdate
+from app.models.intervention import InterventionCreate, InterventionUpdate, InterventionStatus
 from app.services import intervention as svc
 
 router = APIRouter(prefix="/interventions", tags=["interventions"])
@@ -37,3 +37,13 @@ async def list_interventions(student_id: str | None = None, status: str | None =
 @router.get("/{intervention_id}")
 async def get_intervention(intervention_id: str, current_user=Depends(require_role("teacher", "admin"))):
     return await svc.get_intervention(intervention_id)
+
+
+@router.patch("/{intervention_id}/status")
+async def update_intervention_status(intervention_id: str, payload: InterventionStatus, current_user=Depends(require_role("teacher", "admin"))):
+    """Convenience PATCH for updating only the status field."""
+    return await svc.update_intervention(
+        intervention_id=intervention_id,
+        updates={"status": payload.status},
+        actor_id=str(current_user["_id"]),
+    )

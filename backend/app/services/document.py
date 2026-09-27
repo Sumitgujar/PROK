@@ -4,6 +4,7 @@ from app.services.storage import save_file
 from bson import ObjectId
 from datetime import datetime, timezone
 
+
 async def upload_document(file: UploadFile, student_id: str, doc_type: str, title: str, description: str = ""):
     db = get_database()
     file_url, file_size, filename = await save_file(file, student_id)
@@ -23,12 +24,14 @@ async def upload_document(file: UploadFile, student_id: str, doc_type: str, titl
     })
     return {"id": str(result.inserted_id), "status": "UNDER_REVIEW"}
 
+
 async def get_student_documents(student_id: str):
     db = get_database()
     docs = await db.documents.find({"student_id": student_id}).sort("uploaded_at", -1).to_list(None)
     for d in docs:
         d["_id"] = str(d["_id"])
     return docs
+
 
 async def review_document(doc_id: str, reviewer_id: str, status: str, note: str = None):
     db = get_database()
@@ -42,7 +45,24 @@ async def review_document(doc_id: str, reviewer_id: str, status: str, note: str 
         {"$set": {"status": status, "reviewed_by": reviewer_id, "review_note": note,
                   "reviewed_at": datetime.now(timezone.utc).isoformat()}}
     )
+    # Notify student
+    user = await db.users.find_one({"college_id": doc["student_id"]})
+    if user:
+        doc_title = doc.get("title", "document")
+        verb = "verified" if status == "VERIFIED" else "rejected"
+        msg = "Your document '" + doc_title + "' has been " + verb + "."
+        if note:
+            msg += " Note from admin: " + note
+        await db.notifications.insert_one({
+            "recipient_id": str(user["_id"]),
+            "title": "Document " + status.capitalize(),
+            "message": msg,
+            "ntype": "document",
+            "is_read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
     return {"status": status}
+
 
 async def get_all_documents():
     db = get_database()
