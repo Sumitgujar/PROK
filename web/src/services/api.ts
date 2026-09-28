@@ -24,12 +24,16 @@ client.interceptors.response.use(
 
 export const api = {
   get: (path: string) => client.get(path).then(r => r.data),
-  post: (path: string, body: unknown, auth = true) => {
+  post: (path: string, body?: unknown, auth = true) => {
     if (!auth) {
-      return axios.post(`${BASE_URL}${path}`, body).then(r => r.data)
-          .catch(e => Promise.reject(new Error(e.response?.data?.detail || e.message)))
+      return axios
+        .post(`${BASE_URL}${path}`, body)
+        .then(r => r.data)
+        .catch(e => Promise.reject(new Error(e.response?.data?.detail || e.message)))
     }
     return client.post(path, body).then(r => r.data)
   },
-  put: (path: string, body: unknown) => client.put(path, body).then(r => r.data),
+  put: (path: string, body?: unknown) => client.put(path, body).then(r => r.data),
+  patch: (path: string, body?: unknown) => client.patch(path, body).then(r => r.data),
+  delete: (path: string) => client.delete(path).then(r => r.data),
 }
