@@ -203,3 +203,39 @@ async def get_course_recommendations(student_college_id: str) -> dict:
         },
         "recommendations": recommendations[:5],
     }
+
+
+async def get_admin_overview() -> dict:
+    db = get_database()
+    students = await db.students.find({}).to_list(None)
+    at_risk_students = []
+    scholarship_matches = []
+
+    for s in students:
+        cid = s.get("college_id")
+        user = await db.users.find_one({"college_id": cid})
+        name = (user or {}).get("name") or (user or {}).get("full_name") or cid
+        if cid:
+            risk = await get_attendance_risk(cid)
+            if risk.get("risk_level") in ["HIGH", "MEDIUM"]:
+                at_risk_students.append({
+                    "student_id": cid,
+                    "student_name": name,
+                    "risk_level": risk.get("risk_level"),
+                    "overall_attendance": risk.get("overall_attendance", 0),
+                    "reasons": risk.get("reasons", []),
+                })
+            sch_res = await get_scholarship_intelligence(cid)
+            for m in sch_res.get("likely_matching_scholarships", []):
+                scholarship_matches.append({
+                    "student_id": cid,
+                    "student_name": name,
+                    "scholarship_name": m.get("name"),
+                    "match_score": m.get("score", 0),
+                })
+
+    return {
+        "at_risk_students": at_risk_students,
+        "scholarship_matches": scholarship_matches,
+    }
+
