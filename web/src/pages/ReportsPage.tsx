@@ -9,7 +9,7 @@ export function ReportsPage() {
 
   const load = async () => {
     setLoading(true); setError('');
-    try { const res = await api.get('/admin/stats'); setData(res.data); }
+    try { const res = await api.get('/admin/stats'); setData(res?.data !== undefined ? res.data : res); }
     catch (e: any) { setError(e.response?.data?.detail || e.message); }
     finally { setLoading(false); }
   };

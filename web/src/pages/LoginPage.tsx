@@ -17,7 +17,7 @@ export default function LoginPage() {
     if (!password) { setError('Password is required'); return }
     setLoading(true)
     try {
-      await login(email.trim(), password)
+      await login(email.trim(), password.trim())
       nav('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Login failed')
@@ -60,7 +60,22 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p className="text-center text-xs text-gray-400 mt-6">Admin access only</p>
+
+        <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+          <div className="font-semibold mb-1">Admin Demo Credentials:</div>
+          <div className="flex justify-between items-center">
+            <code>admin@prok.edu / admin123</code>
+            <button
+              type="button"
+              onClick={() => { setEmail('admin@prok.edu'); setPassword('admin123'); setError(''); }}
+              className="px-2.5 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition"
+            >
+              Auto-fill
+            </button>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-gray-400 mt-4">Admin access only</p>
       </div>
     </div>
   )

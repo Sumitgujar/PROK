@@ -11,7 +11,11 @@ export function InterventionsPage() {
 
   const load = async () => {
     setLoading(true); setError('');
-    try { const res = await api.get('/interventions'); setInterventions(res.data.interventions ?? res.data ?? []); }
+    try {
+      const res = await api.get('/interventions');
+      const payload = res?.data !== undefined ? res.data : res;
+      setInterventions(Array.isArray(payload) ? payload : (payload?.interventions ?? []));
+    }
     catch (e: any) { setError(e.response?.data?.detail || e.message); }
     finally { setLoading(false); }
   };
