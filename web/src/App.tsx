@@ -7,6 +7,10 @@ import AttendancePage from "./pages/AttendancePage"
 import DocumentsPage from "./pages/DocumentsPage"
 import ScholarshipsPage from "./pages/ScholarshipsPage"
 import CoursesPage from "./pages/CoursesPage"
+import { OverviewPage } from "./pages/OverviewPage"
+import { InterventionsPage } from "./pages/InterventionsPage"
+import { AIInsightsPage } from "./pages/AIInsightsPage"
+import { ReportsPage } from "./pages/ReportsPage"
 import MainLayout from "./layouts/MainLayout"
 
 function Protected({ children }: { children: React.ReactNode }) {
@@ -22,11 +26,15 @@ export default function App() {
         <Route path="/" element={<Protected><MainLayout /></Protected>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="overview" element={<OverviewPage />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="scholarships" element={<ScholarshipsPage />} />
           <Route path="courses" element={<CoursesPage />} />
+          <Route path="interventions" element={<InterventionsPage />} />
+          <Route path="ai-insights" element={<AIInsightsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
