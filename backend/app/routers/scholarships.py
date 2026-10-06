@@ -35,3 +35,15 @@ async def create(data: ScholarshipCreate, current_user=Depends(require_role("adm
     result = await db.scholarships.insert_one({**data.dict(), "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()})
     return {"id": str(result.inserted_id)}
+
+@router.delete("/{scholarship_id}")
+async def delete_scholarship(scholarship_id: str, current_user=Depends(require_role("admin"))):
+    from bson import ObjectId
+    from app.db.connection import get_database
+    db = get_database()
+    try:
+        oid = ObjectId(scholarship_id)
+        await db.scholarships.delete_one({"_id": oid})
+    except Exception:
+        await db.scholarships.delete_one({"_id": scholarship_id})
+    return {"message": "Scholarship deleted"}

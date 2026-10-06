@@ -37,3 +37,15 @@ async def create_course(data: CourseCreate, current_user=Depends(require_role("a
     result = await db.courses.insert_one({**data.dict(), "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()})
     return {"id": str(result.inserted_id)}
+
+@router.delete("/{course_id}")
+async def delete_course(course_id: str, current_user=Depends(require_role("admin"))):
+    from bson import ObjectId
+    from app.db.connection import get_database
+    db = get_database()
+    try:
+        oid = ObjectId(course_id)
+        await db.courses.delete_one({"_id": oid})
+    except Exception:
+        await db.courses.delete_one({"_id": course_id})
+    return {"message": "Course deleted"}

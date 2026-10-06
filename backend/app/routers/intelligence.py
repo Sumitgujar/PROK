@@ -39,3 +39,9 @@ async def scholarship_matches(student_id: str | None = None, current_user=Depend
 @router.get("/courses/recommendations")
 async def course_recommendations(student_id: str | None = None, current_user=Depends(require_role("student", "teacher", "admin"))):
     return await svc.get_course_recommendations(_resolve_student_id(current_user, student_id))
+
+
+@router.get("/admin/overview")
+async def admin_overview(current_user=Depends(require_role("teacher", "admin"))):
+    return await svc.get_admin_overview()
+

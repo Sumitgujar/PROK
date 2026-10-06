@@ -6,7 +6,7 @@ from app.core.dependencies import get_current_user, require_role
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 
 @router.post("/mark")
-async def mark(data: MarkAttendanceRequest, current_user=Depends(require_role("teacher"))):
+async def mark(data: MarkAttendanceRequest, current_user=Depends(require_role("teacher", "admin"))):
     return await svc.mark_attendance(
         data.course_id, [r.dict() for r in data.records],
         str(current_user["_id"]), data.date, data.notes or "")
