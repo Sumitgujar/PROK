@@ -47,6 +47,7 @@ async def seed():
     teacher_user = await db.users.find_one({"email": "teacher@prok.edu"})
     if not teacher_user:
         tr = await db.users.insert_one({
+            "name": "Dr. Meera Krishnan",
             "full_name": "Dr. Meera Krishnan",
             "email": "drmeera@prok.edu",
             "hashed_password": hash_password("teacher123"),
@@ -65,6 +66,7 @@ async def seed():
     # ── 3. STUDENT: Aarav Shah ────────────────────────────────────
     print("\nCreating Aarav Shah...")
     stu_res = await db.users.insert_one({
+        "name": "Aarav Shah",
         "full_name": "Aarav Shah",
         "email": "aarav@prok.edu",
         "hashed_password": hash_password("aarav123"),
