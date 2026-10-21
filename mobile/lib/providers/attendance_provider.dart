@@ -53,7 +53,7 @@ class AttendanceProvider extends ChangeNotifier {
   Future<void> loadEnrolledStudents(String courseId) async {
     _state = ProviderState.loading; notifyListeners();
     try {
-      final data = await _api.get('/attendance/courses/\$courseId/students');
+      final data = await _api.get('/attendance/courses/$courseId/students');
       final raw = data is List ? data : (data as Map)['students'] ?? [];
       _enrolledStudents = List<Map<String, dynamic>>.from(raw as List);
       _state = ProviderState.loaded;
@@ -64,7 +64,7 @@ class AttendanceProvider extends ChangeNotifier {
   Future<void> loadCourseHistory(String courseId) async {
     _state = ProviderState.loading; notifyListeners();
     try {
-      final data = await _api.get('/attendance/courses/\$courseId/history');
+      final data = await _api.get('/attendance/courses/$courseId/history');
       final raw = data is List ? data : (data as Map)['sessions'] ?? [];
       _courseHistory = List<Map<String, dynamic>>.from(raw as List);
       _state = ProviderState.loaded;
