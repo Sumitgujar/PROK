@@ -18,6 +18,17 @@ class CourseProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isLoading => _state == ProviderState.loading;
 
+  List<Map<String, dynamic>> get myCourses => _enrollments.map((e) => <String, dynamic>{
+    '_id': e.id,
+    'course_id': e.courseId,
+    'course_code': e.courseCode,
+    'title': e.courseTitle,
+    'status': e.status,
+  }).toList();
+
+  Future<void> fetchCourses() => loadCourses();
+  Future<void> fetchMyCourses() => loadEnrolled();
+
   final _api = ApiService();
 
   Future<void> loadCourses() async {
