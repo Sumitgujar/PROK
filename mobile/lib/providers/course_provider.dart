@@ -59,6 +59,19 @@ class CourseProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateProfile({
+    required List<String> skills,
+    required List<String> interests,
+    required List<String> careerGoals,
+  }) async {
+    await _api.put('/courses/profile', {
+      'skills': skills,
+      'interests': interests,
+      'career_goals': careerGoals,
+    });
+    await loadProfile();
+  }
+
   Future<void> enroll(String courseId) async {
     await _api.post("/courses/enroll", {"course_id": courseId});
     await loadEnrolled();
