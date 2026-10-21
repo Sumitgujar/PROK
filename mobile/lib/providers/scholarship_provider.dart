@@ -18,6 +18,10 @@ class ScholarshipProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isLoading => _state == ProviderState.loading;
 
+  List<ApplicationModel> get myApplications => _applications;
+  Future<void> fetchScholarships() => load();
+  Future<void> fetchMyApplications() => load();
+
   final _api = ApiService();
 
   Future<void> load() async {
