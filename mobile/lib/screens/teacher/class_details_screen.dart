@@ -30,7 +30,7 @@ class _CDState extends State<ClassDetailsScreen> {
     final id = _course?['_id'] ?? _course?['course_id'] ?? _course?['id'] ?? '';
     setState(() { _loading = true; _error = null; });
     try {
-      final d = await ApiService().get('/attendance/courses/\$id/students');
+      final d = await ApiService().get('/attendance/courses/$id/students');
       final raw = d is List ? d : (d as Map)['students'] ?? [];
       _students = List<Map<String, dynamic>>.from(raw as List);
       setState(() => _loading = false);
