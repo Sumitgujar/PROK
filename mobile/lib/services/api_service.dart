@@ -49,7 +49,7 @@ class ApiService {
     final detail = body is Map
         ? (body['detail'] ?? body['message'] ?? response.reasonPhrase)
         : (body is String && body.isNotEmpty ? body : response.reasonPhrase);
-    throw Exception(detail?.toString() ?? 'Request failed (\${response.statusCode}).');
+    throw Exception(detail?.toString() ?? 'Request failed (${response.statusCode}).');
   }
 
   bool _isRetryable(Object error) =>
@@ -64,7 +64,7 @@ class ApiService {
       try {
         final response = await http
             .get(
-              Uri.parse('\${ApiConfig.baseUrl}$path'),
+              Uri.parse('${ApiConfig.baseUrl}$path'),
               headers: await _headers(),
             )
             .timeout(_timeout);
@@ -89,7 +89,7 @@ class ApiService {
       try {
         final response = await http
             .post(
-              Uri.parse('\${ApiConfig.baseUrl}$path'),
+              Uri.parse('${ApiConfig.baseUrl}$path'),
               headers: await _headers(auth: auth),
               body: jsonEncode(body),
             )
@@ -107,7 +107,7 @@ class ApiService {
   Future<dynamic> put(String path, dynamic body) async {
     final response = await http
         .put(
-          Uri.parse('\${ApiConfig.baseUrl}$path'),
+          Uri.parse('${ApiConfig.baseUrl}$path'),
           headers: await _headers(),
           body: jsonEncode(body),
         )
@@ -118,7 +118,7 @@ class ApiService {
   Future<dynamic> patch(String path, dynamic body) async {
     final response = await http
         .patch(
-          Uri.parse('\${ApiConfig.baseUrl}$path'),
+          Uri.parse('${ApiConfig.baseUrl}$path'),
           headers: await _headers(),
           body: jsonEncode(body),
         )
@@ -134,7 +134,7 @@ class ApiService {
     final token = await getToken();
     final request = http.MultipartRequest(
       'POST',
-      Uri.parse('\${ApiConfig.baseUrl}$path'),
+      Uri.parse('${ApiConfig.baseUrl}$path'),
     );
     if (token != null && token.isNotEmpty) {
       request.headers['Authorization'] = 'Bearer $token';
