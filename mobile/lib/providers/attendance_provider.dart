@@ -25,6 +25,8 @@ class AttendanceProvider extends ChangeNotifier {
 
   final _api = ApiService();
 
+  Future<void> fetchStudentSummary() => loadSummary();
+
   Future<void> loadSummary() async {
     _state = ProviderState.loading; notifyListeners();
     try {
