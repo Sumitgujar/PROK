@@ -63,10 +63,7 @@ export default function AttendancePage() {
     total: result.total + Number(s.total || 0),
   }), { present: 0, absent: 0, total: 0 }), [sessions])
 
-  const toggleSession = async (session: Session) => {
-    if (expanded === session._id) { setExpanded(null); return }
-    setExpanded(session._id)
-    if (recordsBySession[session._id]) return
+  const loadSessionRecords = async (session: Session) => {
     setLoadingSession(session._id)
     setRecordErrors(prev => ({ ...prev, [session._id]: "" }))
     try {
@@ -75,6 +72,13 @@ export default function AttendancePage() {
     } catch (e) {
       setRecordErrors(prev => ({ ...prev, [session._id]: e instanceof Error ? e.message : "Could not load student records." }))
     } finally { setLoadingSession(null) }
+  }
+
+  const toggleSession = async (session: Session) => {
+    if (expanded === session._id) { setExpanded(null); return }
+    setExpanded(session._id)
+    if (recordsBySession[session._id]) return
+    await loadSessionRecords(session)
   }
 
   const exportSessions = () => downloadCsv("prok-todays-attendance-sessions.csv", filtered.map(s => ({
@@ -122,7 +126,7 @@ export default function AttendancePage() {
           {isExpanded && <div className="border-t border-slate-100 bg-slate-50/60 p-4 sm:p-5">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 className="font-bold text-slate-800">Student records</h4><p className="mt-1 text-xs text-slate-500">Records read from the database for this session.</p></div><button onClick={() => exportRecords(s)} disabled={!records.length} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">↓ Export records</button></div>
             {loadingSession === s._id ? <div className="py-8 text-center text-sm text-slate-500">Loading records…</div>
-            : recordErrors[s._id] ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{recordErrors[s._id]} <button onClick={() => {setRecordsBySession(prev => {const next={...prev};delete next[s._id];return next});void toggleSession(s)}} className="ml-2 font-bold underline">Retry</button></div>
+            : recordErrors[s._id] ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{recordErrors[s._id]} <button onClick={() => {setRecordsBySession(prev => {const next={...prev};delete next[s._id];return next});void loadSessionRecords(s)}} className="ml-2 font-bold underline">Retry</button></div>
             : records.length === 0 ? <div className="rounded-xl border border-dashed border-slate-200 bg-white py-8 text-center text-sm text-slate-500">No student attendance records found.</div>
             : <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white"><table className="w-full min-w-[480px] text-sm"><thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 text-left">Student</th><th className="px-4 py-3 text-left">Status</th><th className="px-4 py-3 text-left">Marked at</th></tr></thead><tbody className="divide-y divide-slate-100">{records.map((record,i) => <tr key={record._id ?? record.student_id ?? i}><td className="px-4 py-3"><p className="font-semibold text-slate-800">{record.student_name || record.student_id || "Unknown student"}</p>{record.student_name && <p className="mt-0.5 text-xs text-slate-400">{record.student_id}</p>}</td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${record.status === "present" ? "bg-emerald-100 text-emerald-800" : record.status === "late" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"}`}>{record.status || "unknown"}</span></td><td className="px-4 py-3 text-slate-500">{record.marked_at ? new Date(record.marked_at).toLocaleString() : "—"}</td></tr>)}</tbody></table></div>}
           </div>}
