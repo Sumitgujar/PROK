@@ -11,8 +11,10 @@ export function downloadCsv(
 
   const columns = Object.keys(rows[0]);
   const escapeCell = (value: CsvValue) => {
-    const text = String(value ?? "");
-    return '"' + text.replace(/"/g, '""') + '"';
+    const raw = String(value ?? "");
+    // Prevent spreadsheet formula injection when exported fields come from user-entered data.
+    const safe = /^[\u0000-\u0020]*[=+\-@]/.test(raw) ? "'" + raw : raw;
+    return '"' + safe.replace(/"/g, '""') + '"';
   };
 
   const csv = [
@@ -28,5 +30,5 @@ export function downloadCsv(
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
