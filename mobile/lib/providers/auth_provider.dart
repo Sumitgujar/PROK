@@ -28,6 +28,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadUser() => tryAutoLogin();
+
   Future<void> login(String email, String password) async {
     _loading = true;
     notifyListeners();
