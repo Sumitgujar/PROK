@@ -15,6 +15,8 @@ class NotificationProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isLoading => _state == ProviderState.loading;
 
+  Future<void> fetchNotifications() => loadNotifications();
+
   final _api = ApiService();
 
   Future<void> loadNotifications() async {

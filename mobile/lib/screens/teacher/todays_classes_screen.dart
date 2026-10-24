@@ -36,7 +36,7 @@ class _TC extends State<TeacherTodaysClassesScreen> {
                 ])),
               ]),
               const SizedBox(height: 10), const Divider(height: 1), const SizedBox(height: 10),
-              Text('Students: \${c["enrolled_count"] ?? 0}', style: const TextStyle(fontSize: 12, color: ProkColors.neutral600)),
+              Text('Students: ${c["enrolled_count"] ?? 0}', style: const TextStyle(fontSize: 12, color: ProkColors.neutral600)),
               const SizedBox(height: 10),
               Row(children: [
                 Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, AppRoutes.teacherMarkAttendance, arguments: c),

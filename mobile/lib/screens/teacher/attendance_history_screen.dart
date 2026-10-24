@@ -30,7 +30,7 @@ class _AHState extends State<AttendanceHistoryScreen> {
     final id = _course?['_id'] ?? _course?['course_id'] ?? _course?['id'] ?? '';
     setState(() { _loading = true; _error = null; });
     try {
-      final d = await ApiService().get('/attendance/courses/\$id/history');
+      final d = await ApiService().get('/attendance/courses/$id/history');
       final raw = d is List ? d : (d as Map)['sessions'] ?? [];
       _sessions = List<Map<String, dynamic>>.from(raw as List);
       setState(() => _loading = false);
@@ -41,7 +41,7 @@ class _AHState extends State<AttendanceHistoryScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('History — \${_course?["course_code"] ?? ""}')),
+    appBar: AppBar(title: Text('History — ${_course?["course_code"] ?? ""}')),
     body: _loading ? const LoadingWidget()
       : _error != null ? ErrorStateWidget(error: _error!, onRetry: _load)
       : _sessions.isEmpty
@@ -61,7 +61,7 @@ class _AHState extends State<AttendanceHistoryScreen> {
                   contentPadding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
                   title: Text(s['date']?.toString().substring(0, 10) ?? '',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ProkColors.neutral900)),
-                  subtitle: Text('\$presentCount / \${records.length} present',
+                  subtitle: Text('$presentCount / ${records.length} present',
                     style: const TextStyle(fontSize: 12, color: ProkColors.neutral400)),
                   trailing: Icon(isOpen ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: ProkColors.neutral400),
                   onTap: () => setState(() => isOpen ? _expanded.remove(sid) : _expanded.add(sid)),

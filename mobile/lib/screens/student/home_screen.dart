@@ -41,11 +41,11 @@ class _H extends State<StudentHomeScreen> {
               const SectionHeader(title: 'Overview'), const SizedBox(height: 10),
               Row(children: [
                 Expanded(child: StatCard(label: 'Documents', icon: Icons.folder_outlined, color: ProkColors.success,
-                  value: '\${_data?["documents"]?["verified"] ?? 0}/\${_data?["documents"]?["total"] ?? 0}', sub: 'verified',
+                  value: '${_data?["documents"]?["verified"] ?? 0}/${_data?["documents"]?["total"] ?? 0}', sub: 'verified',
                   onTap: () => Navigator.pushNamed(context, AppRoutes.studentDocuments))),
                 const SizedBox(width: 10),
                 Expanded(child: StatCard(label: 'Scholarships', icon: Icons.school_outlined, color: ProkColors.warning,
-                  value: '\${_data?["scholarships"]?["available"] ?? 0}', sub: 'available',
+                  value: '${_data?["scholarships"]?["available"] ?? 0}', sub: 'available',
                   onTap: () => Navigator.pushNamed(context, AppRoutes.studentScholarships))),
               ]),
             ])),
@@ -85,7 +85,7 @@ class _H extends State<StudentHomeScreen> {
           Row(children: [
             const Text('Overall Attendance', style: TextStyle(fontSize: 13, color: ProkColors.neutral600, fontWeight: FontWeight.w500)),
             const Spacer(),
-            Text('\$att%', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: c)),
+            Text('$att%', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: c)),
           ]),
           const SizedBox(height: 10),
           ClipRRect(borderRadius: ProkRadius.full, child: LinearProgressIndicator(value: att / 100, minHeight: 6, backgroundColor: ProkColors.neutral200, valueColor: AlwaysStoppedAnimation(c))),

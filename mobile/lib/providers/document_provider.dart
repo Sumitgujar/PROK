@@ -14,6 +14,9 @@ class DocumentProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isLoading => _state == ProviderState.loading;
 
+  List<DocumentModel> get documents => _docs;
+  Future<void> fetchDocuments() => loadDocuments();
+
   final _api = ApiService();
 
   Future<void> loadDocuments() async {

@@ -66,9 +66,9 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Welcome, \${user?.name ?? "User"} 👋',
+            Text('Welcome, ${user?.name ?? "User"} 👋',
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text('Role: \${user?.role ?? ""}',
+            Text('Role: ${user?.role ?? ""}',
                 style: const TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 20),
             Expanded(

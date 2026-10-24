@@ -30,7 +30,7 @@ class _MAState extends State<MarkAttendanceScreen> {
     final id = _course?['_id'] ?? _course?['course_id'] ?? _course?['id'] ?? '';
     setState(() { _loading = true; _error = null; });
     try {
-      final d = await ApiService().get('/attendance/courses/\$id/students');
+      final d = await ApiService().get('/attendance/courses/$id/students');
       final raw = d is List ? d : (d as Map)['students'] ?? [];
       _students = List<Map<String, dynamic>>.from(raw as List);
       for (final s in _students) {
@@ -64,7 +64,7 @@ class _MAState extends State<MarkAttendanceScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text('Mark Attendance — \${_course?["course_code"] ?? ""}'),
+      title: Text('Mark Attendance — ${_course?["course_code"] ?? ""}'),
       actions: [
         TextButton(onPressed: () { for (final s in _students) { _marks[s['student_id'] ?? s['college_id'] ?? ''] = 'present'; } setState(() {}); }, child: const Text('All P')),
         TextButton(onPressed: () { for (final s in _students) { _marks[s['student_id'] ?? s['college_id'] ?? ''] = 'absent'; } setState(() {}); }, child: const Text('All A')),
@@ -77,7 +77,7 @@ class _MAState extends State<MarkAttendanceScreen> {
           Container(color: ProkColors.primarySurface, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(children: [
               const Expanded(child: Text('P = Present  L = Late  A = Absent', style: TextStyle(fontSize: 12, color: ProkColors.primary))),
-              Text('\${_marks.values.where((v) => v == "present").length}/\${_students.length}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ProkColors.primary)),
+              Text('${_marks.values.where((v) => v == "present").length}/${_students.length}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ProkColors.primary)),
             ])),
           Expanded(child: ListView.separated(
             padding: const EdgeInsets.all(16),
